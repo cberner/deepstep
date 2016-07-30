@@ -1,0 +1,6 @@
+*.py[cod]
+*.swp
+seed.midi
+diagnostic.midi
+out.midi
+training_data

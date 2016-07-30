@@ -1,0 +1,7 @@
+music21==2.2.1
+numpy==1.11.1
+keras==1.0.4
+
+# for tests
+mypy-lang==0.4.3
+pylint==1.6.4
