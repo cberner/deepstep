@@ -244,6 +244,8 @@ def write_score_as_midi(score: List[Sound], bpm: int, filename: str):
 
     midi_stream.insert(0, MetronomeMark(number=bpm))
     midi_file = streamToMidiFile(midi_stream)
+    # TODO: Support other instrument types. Channel 10 forces playback as drumset
+    midi_file.tracks[0].setChannel(10)
     midi_file.open(filename, 'wb')
     midi_file.write()
     midi_file.close()
