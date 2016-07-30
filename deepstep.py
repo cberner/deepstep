@@ -48,6 +48,10 @@ class Sound:
         self.__notes = tuple(notes)
         self.__duration = float(duration)
 
+    @staticmethod
+    def rest(duration):
+        return Sound(sound_type=SoundType.REST, volume=0, notes=[], duration=duration)
+
     @property
     def type(self):
         return self.__type
@@ -109,32 +113,55 @@ class Model:
         self.id_to_sound = {}
         self.sound_to_id = {}
         self.model = None
+        self.sound_volume = 0
+        self.sound_duration = 0
+
+    @staticmethod
+    def expand_rest_notes(score: List[Sound], duration):
+        result = []
+        for sound in score:
+            if sound.type != SoundType.REST:
+                result.append(sound)
+                continue
+            rest_duration = sound.duration
+            while rest_duration > 0:
+                result.append(Sound.rest(duration))
+                rest_duration -= duration
+        return tuple(result)
 
     def train(self, scores: List[List[Sound]], epochs: int):
         # save the mapping from ids to sounds to recover the sounds
         sounds = set() # type: Set[Sound]
         for score in scores:
             sounds = sounds.union(set(score))
-        for i, sound in enumerate(sounds):
-            self.sound_to_id[sound] = i
-            self.id_to_sound[i] = sound
+        for i, notes in enumerate(set([sound.notes for sound in sounds])):
+            self.sound_to_id[notes] = i
+            self.id_to_sound[i] = notes
+
+        self.sound_volume = np.median([sound.volume for sound in sounds if sound.volume])
+        # Treat all notes as the same duration
+        self.sound_duration = np.median([sound.duration for sound in sounds if sound.type == SoundType.NOTE])
+
+        expanded_scores = []
+        for score in scores:
+            expanded_scores.append(self.expand_rest_notes(score, self.sound_duration))
 
         num_ids = len(self.sound_to_id)
         num_examples = 0
-        for score in scores:
+        for score in expanded_scores:
             num_examples += len(score) - self.look_back
         assert num_examples > 0
 
         examples = np.zeros((num_examples, self.look_back, num_ids), dtype=np.bool)
         targets = np.zeros((num_examples, num_ids), dtype=np.bool)
         example_id = 0
-        for score in scores:
+        for score in expanded_scores:
             for i in range(len(score) - self.look_back):
                 # Copy the seed section of the score
                 for j in range(self.look_back):
-                    examples[example_id, j, self.sound_to_id[score[i + j]]] = 1
+                    examples[example_id, j, self.sound_to_id[score[i + j].notes]] = 1
                 # Copy the expected next note of the score
-                targets[example_id, self.sound_to_id[score[i + self.look_back]]] = 1
+                targets[example_id, self.sound_to_id[score[i + self.look_back].notes]] = 1
                 example_id += 1
 
         model = Sequential()
@@ -149,10 +176,10 @@ class Model:
         generated = []
         seed = deque() # type: deque[int]
         for sound in seed_score[:self.look_back]:
-            if sound not in self.sound_to_id:
+            if sound.notes not in self.sound_to_id:
                 seed.append(random.choice(range(len(self.sound_to_id))))
             else:
-                seed.append(self.sound_to_id[sound])
+                seed.append(self.sound_to_id[sound.notes])
 
         # Treat measures as 4/4 time
         length = 0
@@ -172,7 +199,11 @@ class Model:
             seed.popleft()
             seed.append(sound_id)
 
-            sound = self.id_to_sound[sound_id]
+            notes = self.id_to_sound[sound_id]
+            sound = Sound(sound_type=SoundType.NOTE if notes else SoundType.REST,
+                          notes=notes,
+                          volume=self.sound_volume if notes else 0,
+                          duration=self.sound_duration)
             generated.append(sound)
             length += sound.duration
 
