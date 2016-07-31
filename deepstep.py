@@ -33,8 +33,7 @@ from music21.note import Rest, Note
 from music21.chord import Chord
 
 from keras.models import Sequential
-from keras.layers.core import Dense
-from keras.layers.recurrent import LSTM
+from keras.layers.core import Dense, Reshape, Dropout
 
 
 class SoundType(Enum):
@@ -110,8 +109,8 @@ class Sound:
 class Model:
     def __init__(self, look_back):
         self.look_back = look_back
-        self.id_to_sound = {}
-        self.sound_to_id = {}
+        self.id_to_note = {}
+        self.note_to_id = {}
         self.model = None
         self.sound_volume = 0
         self.sound_duration = 0
@@ -132,11 +131,14 @@ class Model:
     def train(self, scores: List[List[Sound]], epochs: int):
         # save the mapping from ids to sounds to recover the sounds
         sounds = set() # type: Set[Sound]
+        all_notes = set() # type: Set[str]
         for score in scores:
             sounds = sounds.union(set(score))
-        for i, notes in enumerate(set([sound.notes for sound in sounds])):
-            self.sound_to_id[notes] = i
-            self.id_to_sound[i] = notes
+        for sound in sounds:
+            all_notes = all_notes.union(set(sound.notes))
+        for i, note in enumerate(all_notes):
+            self.note_to_id[note] = i
+            self.id_to_note[i] = note
 
         self.sound_volume = np.median([sound.volume for sound in sounds if sound.volume])
         # Treat all notes as the same duration
@@ -146,7 +148,7 @@ class Model:
         for score in scores:
             expanded_scores.append(self.expand_rest_notes(score, self.sound_duration))
 
-        num_ids = len(self.sound_to_id)
+        num_ids = len(self.note_to_id)
         num_examples = 0
         for score in expanded_scores:
             num_examples += len(score) - self.look_back
@@ -159,47 +161,56 @@ class Model:
             for i in range(len(score) - self.look_back):
                 # Copy the seed section of the score
                 for j in range(self.look_back):
-                    examples[example_id, j, self.sound_to_id[score[i + j].notes]] = 1
+                    for note in score[i + j].notes:
+                        examples[example_id, j, self.note_to_id[note]] = 1
                 # Copy the expected next note of the score
-                targets[example_id, self.sound_to_id[score[i + self.look_back].notes]] = 1
+                for note in score[i + self.look_back].notes:
+                    targets[example_id, self.note_to_id[note]] = 1
                 example_id += 1
 
         model = Sequential()
-        model.add(LSTM(100, input_dim=num_ids, input_length=self.look_back))
-        model.add(Dense(num_ids, activation='relu'))
-        model.add(Dense(num_ids, activation='softmax'))
-        model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+        model.add(Reshape((self.look_back * num_ids,), input_shape=(self.look_back, num_ids)))
+        model.add(Dense(250, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(100, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(50, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(25, activation='relu'))
+        model.add(Dense(num_ids, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer='adam')
         model.fit(examples, targets, nb_epoch=epochs)
         self.model = model
 
     def generate(self, seed_score: List[Sound], measures: int) -> List[Sound]:
         generated = []
-        seed = deque() # type: deque[int]
+        seed = deque() # type: deque[List[int]]
         for sound in seed_score[:self.look_back]:
-            if sound.notes not in self.sound_to_id:
-                seed.append(random.choice(range(len(self.sound_to_id))))
-            else:
-                seed.append(self.sound_to_id[sound.notes])
+            note_ids = []
+            for note in sound.notes:
+                if note not in self.note_to_id:
+                    note_ids.append(random.choice(range(len(self.note_to_id))))
+                else:
+                    note_ids.append(self.note_to_id[note])
+            seed.append(note_ids)
 
         # Treat measures as 4/4 time
         length = 0
         while length <= measures * 4:
-            seed_ids = np.zeros((1, self.look_back, len(self.id_to_sound)))
-            for i, sound_id in enumerate(seed):
-                seed_ids[0, i, sound_id] = 1
+            seed_ids = np.zeros((1, self.look_back, len(self.id_to_note)))
+            for i, note_ids in enumerate(seed):
+                for note_id in note_ids:
+                    seed_ids[0, i, note_id] = 1
 
-            probabilities = self.model.predict_proba(seed_ids, verbose=False)[0]
-            rand = random.random()
-            sound_id = 0
-            for i, probability in enumerate(probabilities):
-                rand -= probability
-                if rand <= 0:
-                    sound_id = i
-                    break
+            predictions = self.model.predict(seed_ids, verbose=False)[0]
+            predicted_note_ids = []
+            for i, prediction in enumerate(predictions):
+                if prediction > random.random():
+                    predicted_note_ids.append(i)
             seed.popleft()
-            seed.append(sound_id)
+            seed.append(predicted_note_ids)
 
-            notes = self.id_to_sound[sound_id]
+            notes = [self.id_to_note[note_id] for note_id in predicted_note_ids]
             sound = Sound(sound_type=SoundType.NOTE if notes else SoundType.REST,
                           notes=notes,
                           volume=self.sound_volume if notes else 0,
