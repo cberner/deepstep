@@ -269,8 +269,8 @@ def main():
     parser.add_argument('seed_file', type=str, help="File to use as seed data for generation")
     parser.add_argument('--epochs', type=int, default=1, help="Training epochs")
     parser.add_argument('--output_file', type=str, default="out.midi", help="Output file")
-    parser.add_argument('--measures', type=float, default=20, help="Measures of output to generate")
-    parser.add_argument('--look_back', type=float, default=20, help="Look back distance during training")
+    parser.add_argument('--measures', type=int, default=20, help="Measures of output to generate")
+    parser.add_argument('--look_back', type=int, default=20, help="Look back distance during training")
 
     args = parser.parse_args()
 
