@@ -20,7 +20,6 @@ import argparse
 import random
 import os
 import os.path
-from enum import Enum
 from typing import List
 from collections import deque
 
@@ -36,24 +35,14 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Reshape, Dropout
 
 
-class SoundType(Enum):
-    REST = 1
-    NOTE = 2
-
 class Sound:
-    def __init__(self, sound_type: SoundType, volume: int, notes: List[str], duration) -> None:
-        self.__type = sound_type
+    def __init__(self, volume: int, notes: List[str], duration) -> None:
         self.__volume = volume
         self.__notes = tuple(notes)
         self.__duration = float(duration)
 
-    @staticmethod
-    def rest(duration):
-        return Sound(sound_type=SoundType.REST, volume=0, notes=[], duration=duration)
-
-    @property
-    def type(self):
-        return self.__type
+    def is_rest(self):
+        return not self.notes
 
     @property
     def volume(self):
@@ -68,20 +57,19 @@ class Sound:
         return self.__duration
 
     def to_midi_note(self):
-        if self.__type == SoundType.REST:
-            return Rest(quarterLength=self.__duration)
-        if len(self.__notes) == 1:
-            note = Note(self.__notes[0], quarterLength=self.__duration)
-            note.volume = self.__volume
+        if self.is_rest():
+            return Rest(quarterLength=self.duration)
+        if len(self.notes) == 1:
+            note = Note(self.notes[0], quarterLength=self.duration)
+            note.volume = self.volume
             return note
         else:
-            chord = Chord(self.__notes, quarterLength=self.__duration)
-            chord.volume = self.__volume
+            chord = Chord(self.notes, quarterLength=self.duration)
+            chord.volume = self.volume
             return chord
 
     @staticmethod
     def from_midi_note(note):
-        sound_type = SoundType.REST if isinstance(note, Rest) else SoundType.NOTE
         notes = []
         volume = None
         if isinstance(note, Note):
@@ -90,20 +78,19 @@ class Sound:
         elif isinstance(note, Chord):
             notes = [pitch.nameWithOctave for pitch in note.pitches]
             volume = note.volume.velocity
-        return Sound(sound_type, volume, notes, note.quarterLength)
+        return Sound(volume, notes, note.quarterLength)
 
     def __repr__(self):
-        return "type={},volume={},notes={},duration={}".format(
-            self.__type, self.__volume, self.__notes, self.__duration)
+        return "volume={},notes={},duration={}".format(self.volume, self.notes, self.duration)
 
     def __eq__(self, other):
         if not isinstance(other, Sound):
             return False
-        return (self.type == other.type and self.volume == other.volume and
+        return (self.volume == other.volume and
                 self.notes == other.notes and self.duration == other.duration)
 
     def __hash__(self):
-        return hash((self.type, self.volume, self.notes, self.duration))
+        return hash((self.volume, self.notes, self.duration))
 
 
 class Model:
@@ -119,12 +106,12 @@ class Model:
     def expand_rest_notes(score: List[Sound], duration):
         result = []
         for sound in score:
-            if sound.type != SoundType.REST:
+            if not sound.is_rest():
                 result.append(sound)
                 continue
             rest_duration = sound.duration
             while rest_duration > 0:
-                result.append(Sound.rest(duration))
+                result.append(Sound(volume=0, notes=[], duration=duration))
                 rest_duration -= duration
         return tuple(result)
 
@@ -142,7 +129,7 @@ class Model:
 
         self.sound_volume = np.median([sound.volume for sound in sounds if sound.volume])
         # Treat all notes as the same duration
-        self.sound_duration = np.median([sound.duration for sound in sounds if sound.type == SoundType.NOTE])
+        self.sound_duration = np.median([sound.duration for sound in sounds if not sound.is_rest()])
 
         expanded_scores = []
         for score in scores:
@@ -211,8 +198,7 @@ class Model:
             seed.append(predicted_note_ids)
 
             notes = [self.id_to_note[note_id] for note_id in predicted_note_ids]
-            sound = Sound(sound_type=SoundType.NOTE if notes else SoundType.REST,
-                          notes=notes,
+            sound = Sound(notes=notes,
                           volume=self.sound_volume if notes else 0,
                           duration=self.sound_duration)
             generated.append(sound)
