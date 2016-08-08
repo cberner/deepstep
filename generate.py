@@ -81,6 +81,7 @@ def main():
     parser.add_argument('--output_file', type=str, default="out.midi", help="Output file")
     parser.add_argument('--measures', type=int, default=20, help="Measures of output to generate")
     parser.add_argument('--look_back', type=int, default=20, help="Look back distance during training")
+    parser.add_argument('-v', '--verbose', action='count', default=0, help="Verbosity")
 
     args = parser.parse_args()
 
@@ -88,16 +89,16 @@ def main():
     expanded_name = os.path.expanduser(args.training_files)
     if os.path.isdir(expanded_name):
         for filename in os.listdir(expanded_name):
-            _, score = midi_to_score(os.path.join(expanded_name, filename))
+            _, score = midi_to_score(os.path.join(expanded_name, filename), verbose=(args.verbose > 1))
             scores.append(score)
     else:
-        _, score = midi_to_score(expanded_name)
+        _, score = midi_to_score(expanded_name, verbose=(args.verbose > 0))
         scores.append(score)
 
     model = Model(args.look_back)
     model.train(scores, args.epochs)
 
-    bpm, seed_score = midi_to_score(os.path.expanduser(args.seed_file))
+    bpm, seed_score = midi_to_score(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))
     write_score_as_midi(model.generate(seed_score, args.measures), bpm, args.output_file)
     write_score_as_midi(seed_score, bpm, "diagnostic.midi")
 
