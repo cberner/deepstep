@@ -53,12 +53,12 @@ class Model:
     def train(self, scores: List[List[Sound]], epochs: int):
         # save the mapping from ids to sounds to recover the sounds
         sounds = set() # type: Set[Sound]
-        all_notes = set() # type: Set[str]
+        all_notes = set() # type: Set[int]
         for score in scores:
             sounds = sounds.union(set(score))
         for sound in sounds:
             all_notes = all_notes.union(set(sound.notes))
-        for i, note in enumerate(all_notes):
+        for i, note in enumerate(sorted(all_notes)):
             self.note_to_id[note] = i
             self.id_to_note[i] = note
 
