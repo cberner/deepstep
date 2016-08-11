@@ -32,7 +32,7 @@ from deepstep.sound import Sound
 from deepstep.model import Model
 
 
-def midi_to_score(filename, verbose=False) -> Tuple[int, List[Sound]]:
+def midi_to_score(filename: str, verbose: bool=False) -> Tuple[int, List[Sound]]:
     midi = converter.parse(filename)
     if verbose:
         print("MIDI:")
@@ -73,7 +73,7 @@ def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
     midi_file.close()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="DNN to generate music")
     parser.add_argument('training_files', type=str, help="File or directory of training data")
     parser.add_argument('seed_file', type=str, help="File to use as seed data for generation")
@@ -93,7 +93,7 @@ def main():
     else:
         paths.append(expanded_name)
 
-    all_notes = set()
+    all_notes = set() # type: set[int]
     scores = []
     for path in paths:
         _, score = midi_to_score(path, verbose=(args.verbose > 1))

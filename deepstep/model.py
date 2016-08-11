@@ -28,7 +28,7 @@ from keras.layers.core import Dense, Reshape, Dropout
 from deepstep.sound import Sound
 
 
-def expand_rest_notes(score: List[Sound], duration) -> List[Sound]:
+def expand_rest_notes(score: List[Sound], duration: float) -> List[Sound]:
     result = []
     for sound in score:
         if not sound.is_rest():

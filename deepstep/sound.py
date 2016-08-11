@@ -16,14 +16,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-from typing import List, Iterable
+from typing import List, Iterable, SupportsFloat, Any
 
-from music21.note import Rest, Note
+from music21.note import Rest, Note, GeneralNote
 from music21.chord import Chord
 
 
 class Sound:
-    def __init__(self, volume: int, notes: List[int], duration) -> None:
+    def __init__(self, volume: int, notes: List[int], duration: SupportsFloat) -> None:
         self.__volume = volume
         self.__notes = tuple(notes)
         self.__duration = float(duration)
@@ -43,12 +43,12 @@ class Sound:
     def duration(self) -> float:
         return self.__duration
 
-    def to_midi_note(self):
+    def to_midi_note(self) -> GeneralNote:
         if self.is_rest():
             return Rest(quarterLength=self.duration)
-        if len(self.notes) == 1:
+        if len(self.__notes) == 1:
             note = Note(quarterLength=self.duration)
-            note.pitch.midi = self.notes[0]
+            note.pitch.midi = self.__notes[0]
             note.volume = self.volume
             return note
         else:
@@ -57,7 +57,7 @@ class Sound:
             return chord
 
     @staticmethod
-    def from_midi_note(note) -> 'Sound':
+    def from_midi_note(note: GeneralNote) -> 'Sound':
         notes = []
         volume = None
         if isinstance(note, Note):
@@ -68,14 +68,14 @@ class Sound:
             volume = note.volume.velocity
         return Sound(volume, notes, note.quarterLength)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "volume={},notes={},duration={}".format(self.volume, self.notes, self.duration)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Sound):
             return False
         return (self.volume == other.volume and
                 self.notes == other.notes and self.duration == other.duration)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.volume, self.notes, self.duration))
