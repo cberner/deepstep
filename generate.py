@@ -19,7 +19,7 @@ limitations under the License.
 import argparse
 import os
 import os.path
-from typing import List
+from typing import List, Tuple
 
 from music21 import converter
 from music21.midi.translate import streamToMidiFile
@@ -32,7 +32,7 @@ from deepstep.sound import Sound
 from deepstep.model import Model
 
 
-def midi_to_score(filename, verbose=False):
+def midi_to_score(filename, verbose=False) -> Tuple[int, List[Sound]]:
     midi = converter.parse(filename)
     if verbose:
         print("MIDI:")
@@ -57,9 +57,9 @@ def midi_to_score(filename, verbose=False):
     return (bpm, score)
 
 
-def write_score_as_midi(score: List[Sound], bpm: int, filename: str):
+def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
     midi_stream = Stream()
-    offset = 0
+    offset = 0.0
     for sound in score:
         midi_stream.insert(offset + sound.duration, sound.to_midi_note())
         offset += sound.duration
@@ -85,17 +85,23 @@ def main():
 
     args = parser.parse_args()
 
-    scores = []
     expanded_name = os.path.expanduser(args.training_files)
+    paths = []
     if os.path.isdir(expanded_name):
         for filename in os.listdir(expanded_name):
-            _, score = midi_to_score(os.path.join(expanded_name, filename), verbose=(args.verbose > 1))
-            scores.append(score)
+            paths.append(os.path.join(expanded_name, filename))
     else:
-        _, score = midi_to_score(expanded_name, verbose=(args.verbose > 0))
-        scores.append(score)
+        paths.append(expanded_name)
 
-    model = Model(args.look_back)
+    all_notes = set()
+    scores = []
+    for path in paths:
+        _, score = midi_to_score(path, verbose=(args.verbose > 1))
+        scores.append(score)
+        for sound in score:
+            all_notes = all_notes.union(set(sound.notes))
+
+    model = Model(all_notes, args.look_back)
     model.train(scores, args.epochs)
 
     bpm, seed_score = midi_to_score(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))

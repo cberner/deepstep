@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-from typing import List
+from typing import List, Set
 from collections import deque
 import random
 
@@ -28,7 +28,7 @@ from keras.layers.core import Dense, Reshape, Dropout
 from deepstep.sound import Sound
 
 
-def expand_rest_notes(score: List[Sound], duration):
+def expand_rest_notes(score: List[Sound], duration) -> List[Sound]:
     result = []
     for sound in score:
         if not sound.is_rest():
@@ -38,29 +38,35 @@ def expand_rest_notes(score: List[Sound], duration):
         while rest_duration > 0:
             result.append(Sound(volume=0, notes=[], duration=duration))
             rest_duration -= duration
-    return tuple(result)
+    return result
 
 
 class Model:
-    def __init__(self, look_back):
+    def __init__(self, notes: Set[int], look_back: int) -> None:
         self.look_back = look_back
-        self.id_to_note = {}
-        self.note_to_id = {}
-        self.model = None
         self.sound_volume = 0
         self.sound_duration = 0
+        self.id_to_note = dict((i, note) for (i, note) in  enumerate(sorted(notes)))
+        self.note_to_id = dict((note, i) for (i, note) in enumerate(sorted(notes)))
 
-    def train(self, scores: List[List[Sound]], epochs: int):
+        model = Sequential()
+        model.add(Reshape((self.look_back * len(notes),), input_shape=(self.look_back, len(notes))))
+        model.add(Dense(250, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(100, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(50, activation='relu'))
+        model.add(Dropout(0.2))
+        model.add(Dense(25, activation='relu'))
+        model.add(Dense(len(notes), activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer='adam')
+        self.model = model
+
+    def train(self, scores: List[List[Sound]], epochs: int) -> None:
         # save the mapping from ids to sounds to recover the sounds
         sounds = set() # type: Set[Sound]
-        all_notes = set() # type: Set[int]
         for score in scores:
             sounds = sounds.union(set(score))
-        for sound in sounds:
-            all_notes = all_notes.union(set(sound.notes))
-        for i, note in enumerate(sorted(all_notes)):
-            self.note_to_id[note] = i
-            self.id_to_note[i] = note
 
         self.sound_volume = np.median([sound.volume for sound in sounds if sound.volume])
         # Treat all notes as the same duration
@@ -90,19 +96,7 @@ class Model:
                     targets[example_id, self.note_to_id[note]] = 1
                 example_id += 1
 
-        model = Sequential()
-        model.add(Reshape((self.look_back * num_ids,), input_shape=(self.look_back, num_ids)))
-        model.add(Dense(250, activation='relu'))
-        model.add(Dropout(0.2))
-        model.add(Dense(100, activation='relu'))
-        model.add(Dropout(0.2))
-        model.add(Dense(50, activation='relu'))
-        model.add(Dropout(0.2))
-        model.add(Dense(25, activation='relu'))
-        model.add(Dense(num_ids, activation='sigmoid'))
-        model.compile(loss='binary_crossentropy', optimizer='adam')
-        model.fit(examples, targets, nb_epoch=epochs)
-        self.model = model
+        self.model.fit(examples, targets, nb_epoch=epochs)
 
     def generate(self, seed_score: List[Sound], measures: int) -> List[Sound]:
         generated = []
@@ -117,7 +111,7 @@ class Model:
             seed.append(note_ids)
 
         # Treat measures as 4/4 time
-        length = 0
+        length = 0.0
         while length <= measures * 4:
             seed_ids = np.zeros((1, self.look_back, len(self.id_to_note)))
             for i, note_ids in enumerate(seed):

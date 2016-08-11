@@ -28,11 +28,11 @@ class Sound:
         self.__notes = tuple(notes)
         self.__duration = float(duration)
 
-    def is_rest(self):
+    def is_rest(self) -> bool:
         return not self.notes
 
     @property
-    def volume(self):
+    def volume(self) -> int:
         return self.__volume
 
     @property
@@ -40,7 +40,7 @@ class Sound:
         return self.__notes
 
     @property
-    def duration(self):
+    def duration(self) -> float:
         return self.__duration
 
     def to_midi_note(self):
@@ -57,7 +57,7 @@ class Sound:
             return chord
 
     @staticmethod
-    def from_midi_note(note):
+    def from_midi_note(note) -> 'Sound':
         notes = []
         volume = None
         if isinstance(note, Note):
