@@ -19,7 +19,7 @@ limitations under the License.
 import argparse
 import os
 import os.path
-from typing import List, Tuple
+from typing import List
 
 from music21 import converter
 from music21.midi.translate import streamToMidiFile
@@ -32,29 +32,35 @@ from deepstep.sound import Sound
 from deepstep.model import Model
 
 
-def midi_to_score(filename: str, verbose: bool=False) -> Tuple[int, List[Sound]]:
+def midi_to_score(filename: str, verbose: bool=False) -> List[Sound]:
     midi = converter.parse(filename)
     if verbose:
         print("MIDI:")
         print("Channels: ", len(midi))
         print("Notes per channel: ", [len(channel.flat) for channel in midi])
     score = []
-    bpm = 140
     # TODO: For now only use the first channel
     for note in midi[0].flat:
         if verbose and not (isinstance(note, Note) or isinstance(note, Rest) or
                             isinstance(note, Chord) or isinstance(note, MetronomeMark)):
             print(note)
             continue
-        if isinstance(note, MetronomeMark):
-            bpm = note.number
-            continue
         sound = Sound.from_midi_note(note)
         if sound.duration == 0.0:
             continue
         score.append(sound)
 
-    return (bpm, score)
+    return score
+
+
+def bpm_of_midi(filename: str) -> int:
+    midi = converter.parse(filename)
+    for track in midi:
+        for note in track.flat:
+            if isinstance(note, MetronomeMark):
+                return note.number
+
+    return 140
 
 
 def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
@@ -96,7 +102,7 @@ def main() -> None:
     all_notes = set() # type: set[int]
     scores = []
     for path in paths:
-        _, score = midi_to_score(path, verbose=(args.verbose > 1))
+        score = midi_to_score(path, verbose=(args.verbose > 1))
         scores.append(score)
         for sound in score:
             all_notes = all_notes.union(set(sound.notes))
@@ -104,7 +110,8 @@ def main() -> None:
     model = Model(all_notes, args.look_back)
     model.train(scores, args.epochs)
 
-    bpm, seed_score = midi_to_score(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))
+    seed_score = midi_to_score(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))
+    bpm = bpm_of_midi(os.path.expanduser(args.seed_file))
     write_score_as_midi(model.generate(seed_score, args.measures), bpm, args.output_file)
     write_score_as_midi(seed_score, bpm, "diagnostic.midi")
 
