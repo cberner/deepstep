@@ -115,6 +115,14 @@ def main() -> None:
     # Treat all notes as the same duration
     sound_duration = np.median([sound.duration for sound in sounds if not sound.is_rest()])
 
+    split = len(scores) // 10
+    validation_scores = scores[:split]
+    training_scores = scores[split:]
+    model = Model(all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
+    model.train(training_scores, args.epochs)
+    print("Validation loss: " + str(model.evaluate(validation_scores)))
+
+    # re-train on all scores
     model = Model(all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
     model.train(scores, args.epochs)
 

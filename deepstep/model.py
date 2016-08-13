@@ -66,6 +66,10 @@ class Model:
         examples, labels = self.__scores_to_matrices(scores)
         self.model.fit(examples, labels, nb_epoch=epochs)
 
+    def evaluate(self, scores: List[List[Sound]]) -> float:
+        examples, labels = self.__scores_to_matrices(scores)
+        return self.model.evaluate(examples, labels, verbose=False)
+
     def __scores_to_matrices(self, scores: Sequence[Sequence[Sound]]) -> Tuple[np.ndarray, np.ndarray]:
         expanded_scores = []
         for score in scores:
