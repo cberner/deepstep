@@ -21,6 +21,8 @@ import os
 import os.path
 from typing import List
 
+import numpy as np
+
 from music21 import converter
 from music21.midi.translate import streamToMidiFile
 from music21.tempo import MetronomeMark
@@ -100,14 +102,20 @@ def main() -> None:
         paths.append(expanded_name)
 
     all_notes = set() # type: set[int]
+    sounds = set() # type: Set[Sound]
     scores = []
     for path in paths:
         score = midi_to_score(path, verbose=(args.verbose > 1))
         scores.append(score)
+        sounds = sounds.union(set(score))
         for sound in score:
             all_notes = all_notes.union(set(sound.notes))
 
-    model = Model(all_notes, args.look_back)
+    sound_volume = np.median([sound.volume for sound in sounds if sound.volume])
+    # Treat all notes as the same duration
+    sound_duration = np.median([sound.duration for sound in sounds if not sound.is_rest()])
+
+    model = Model(all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
     model.train(scores, args.epochs)
 
     seed_score = midi_to_score(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))
