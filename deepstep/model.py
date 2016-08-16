@@ -25,6 +25,8 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers.core import Dense, Reshape, Dropout
 
+from hyperflow import Hyperparameters
+
 from deepstep.sound import Sound
 
 
@@ -42,7 +44,12 @@ def expand_rest_notes(score: Sequence[Sound], duration: float) -> List[Sound]:
 
 
 class Model:
-    def __init__(self, notes: Set[int], look_back: int, sound_volume: int, sound_duration: float) -> None:
+    def __init__(self,
+                 hyperparameters: Hyperparameters,
+                 notes: Set[int],
+                 look_back: int,
+                 sound_volume: int,
+                 sound_duration: float) -> None:
         self.look_back = look_back
         self.sound_volume = sound_volume
         self.sound_duration = sound_duration
@@ -51,13 +58,14 @@ class Model:
 
         model = Sequential()
         model.add(Reshape((self.look_back * len(notes),), input_shape=(self.look_back, len(notes))))
-        model.add(Dense(250, activation='relu'))
-        model.add(Dropout(0.2))
-        model.add(Dense(100, activation='relu'))
-        model.add(Dropout(0.2))
-        model.add(Dense(50, activation='relu'))
-        model.add(Dropout(0.2))
-        model.add(Dense(25, activation='relu'))
+
+        first_layer = True
+        for neurons in hyperparameters.layers:
+            if not first_layer:
+                model.add(Dropout(0.2))
+            model.add(Dense(neurons, activation='relu'))
+            first_layer = False
+
         model.add(Dense(len(notes), activation='sigmoid'))
         model.compile(loss='binary_crossentropy', optimizer='adam')
         self.model = model

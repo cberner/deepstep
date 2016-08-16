@@ -30,6 +30,8 @@ from music21.stream import Stream
 from music21.note import Rest, Note
 from music21.chord import Chord
 
+from hyperflow import Hyperparameters
+
 from deepstep.sound import Sound
 from deepstep.model import Model
 
@@ -82,6 +84,7 @@ def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
 
 
 def main() -> None:
+    hyperparameters = Hyperparameters([250, 100, 50, 25])
     parser = argparse.ArgumentParser(description="DNN to generate music")
     parser.add_argument('training_files', type=str, help="File or directory of training data")
     parser.add_argument('seed_file', type=str, help="File to use as seed data for generation")
@@ -118,12 +121,12 @@ def main() -> None:
     split = len(scores) // 10
     validation_scores = scores[:split]
     training_scores = scores[split:]
-    model = Model(all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
+    model = Model(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
     model.train(training_scores, args.epochs)
     print("Validation loss: " + str(model.evaluate(validation_scores)))
 
     # re-train on all scores
-    model = Model(all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
+    model = Model(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume, sound_duration=sound_duration)
     model.train(scores, args.epochs)
 
     seed_score = midi_to_score(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))
