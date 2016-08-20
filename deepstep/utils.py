@@ -56,7 +56,7 @@ def bpm_of_midi(filename: str) -> int:
             if isinstance(note, MetronomeMark):
                 return note.number
 
-    return 140
+    return 120
 
 
 def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
