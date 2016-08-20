@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/cberner/deepstep.svg?branch=master)](https://travis-ci.org/cberner/deepstep)
+[![Build Status](https://travis-ci.org/cberner/deepstep.svg?branch=master)](https://travis-ci.org/cberner/deepstep) [![Coverage Status](https://coveralls.io/repos/github/cberner/deepstep/badge.svg?branch=master)](https://coveralls.io/github/cberner/deepstep?branch=master)
 
 Building
 ========

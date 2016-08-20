@@ -5,3 +5,4 @@ keras==1.0.4
 # for tests
 mypy-lang==0.4.3
 pylint==1.6.4
+coverage==4.2

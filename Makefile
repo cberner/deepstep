@@ -1,4 +1,4 @@
-.PHONY: all test
+.PHONY: all test coverage coverage_data
 
 all: test
 
@@ -14,3 +14,9 @@ test:
 		--disable=locally-disabled\
 		deepstep/ *.py tests/*.py
 	python -m unittest discover -s tests
+
+coverage_data:
+	coverage run --source=deepstep -m unittest discover -s tests
+
+coverage: coverage_data
+	coverage report
