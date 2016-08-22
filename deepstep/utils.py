@@ -78,7 +78,7 @@ def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
     midi_stream = Stream()
     offset = 0.0
     for sound in score:
-        midi_stream.insert(offset + sound.duration, sound.to_midi_note())
+        midi_stream.insert(offset, sound.to_midi_note())
         offset += sound.duration
 
     midi_stream.insert(0, MetronomeMark(number=bpm))
