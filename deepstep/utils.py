@@ -19,6 +19,7 @@ limitations under the License.
 from typing import List
 
 from music21 import converter
+from music21.midi import MidiFile
 from music21.midi.translate import streamToMidiFile
 from music21.tempo import MetronomeMark
 from music21.stream import Stream
@@ -26,6 +27,20 @@ from music21.note import Rest, Note
 from music21.chord import Chord
 
 from deepstep.sound import Sound
+
+
+class ScoreMetadata:
+    def __init__(self, instrument: str, notes: int) -> None:
+        self.__instrument = instrument
+        self.__notes = notes
+
+    @property
+    def instrument(self) -> str:
+        return self.__instrument
+
+    @property
+    def notes(self) -> int:
+        return self.__notes
 
 
 def midi_to_score(filename: str, verbose: bool=False) -> List[Sound]:
@@ -73,3 +88,23 @@ def write_score_as_midi(score: List[Sound], bpm: int, filename: str) -> None:
     midi_file.open(filename, 'wb')
     midi_file.write()
     midi_file.close()
+
+
+def midi_to_metadata(filename: str) -> List[ScoreMetadata]:
+    midi_file = MidiFile()
+    midi_file.open(filename)
+    midi_file.read()
+    scores = []
+    for track in midi_file.tracks:
+        instruments = {} # type: dict[str, int]
+        for note in track.events:
+            if note.type == 'NOTE_ON' and note.velocity > 0:
+                instrument = 'Other'
+                # TODO: Handle other types of instruments
+                if note.channel == 10:
+                    instrument = 'Drumset'
+                instruments[instrument] = 1 + instruments.get(instrument, 0)
+        for instrument, notes in instruments.items():
+            scores.append(ScoreMetadata(instrument, notes))
+    midi_file.close()
+    return scores

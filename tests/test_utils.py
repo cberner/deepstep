@@ -20,7 +20,7 @@ import unittest
 import tempfile
 import pkgutil
 
-from deepstep.utils import bpm_of_midi
+from deepstep.utils import bpm_of_midi, midi_to_metadata
 
 class TestMidiUtils(unittest.TestCase):
     def setUp(self) -> None:
@@ -33,3 +33,9 @@ class TestMidiUtils(unittest.TestCase):
 
     def test_bpm_parsing(self) -> None:
         self.assertEqual(bpm_of_midi(self.midi_file.name), 140)
+
+    def test_metadata_parsing(self) -> None:
+        metadata = midi_to_metadata(self.midi_file.name)
+        self.assertEqual(len(metadata), 1)
+        self.assertEqual(metadata[0].instrument, 'Drumset')
+        self.assertEqual(metadata[0].notes, 2)
