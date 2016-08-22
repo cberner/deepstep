@@ -20,7 +20,8 @@ import unittest
 import tempfile
 import pkgutil
 
-from deepstep.utils import bpm_of_midi, midi_to_metadata
+from deepstep.sound import Sound
+from deepstep.utils import midi_to_score, bpm_of_midi, write_score_as_midi, midi_to_metadata
 
 class TestMidiUtils(unittest.TestCase):
     def setUp(self) -> None:
@@ -39,3 +40,15 @@ class TestMidiUtils(unittest.TestCase):
         self.assertEqual(len(metadata), 1)
         self.assertEqual(metadata[0].instrument, 'Drumset')
         self.assertEqual(metadata[0].notes, 2)
+
+    def test_read_write(self) -> None:
+        midi_file = tempfile.NamedTemporaryFile(suffix='.midi')
+        score = [Sound(volume=50, notes=[65], duration=1.0)]
+        read_score = None
+        try:
+            write_score_as_midi(score, 110, midi_file.name)
+            midi_file.flush()
+            read_score = midi_to_score(midi_file.name)
+        finally:
+            midi_file.close()
+        self.assertEqual(read_score, score)
