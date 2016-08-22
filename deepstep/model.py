@@ -81,7 +81,9 @@ class Model:
     def __scores_to_matrices(self, scores: Sequence[Sequence[Sound]]) -> Tuple[np.ndarray, np.ndarray]:
         expanded_scores = []
         for score in scores:
-            expanded_scores.append(expand_rest_notes(score, self.sound_duration))
+            expanded = expand_rest_notes(score, self.sound_duration)
+            if len(expanded) > self.look_back:
+                expanded_scores.append(expanded)
 
         num_ids = len(self.note_to_id)
         num_examples = 0
