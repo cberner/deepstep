@@ -53,7 +53,7 @@ class Model:
         self.look_back = look_back
         self.sound_volume = sound_volume
         self.sound_duration = sound_duration
-        self.id_to_note = dict((i, note) for (i, note) in  enumerate(sorted(notes)))
+        self.id_to_note = dict((i, note) for (i, note) in enumerate(sorted(notes)))
         self.note_to_id = dict((note, i) for (i, note) in enumerate(sorted(notes)))
 
         model = Sequential()
