@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-from typing import List, Iterable, SupportsFloat, Any
+from typing import List, SupportsFloat, Any, Sequence
 
 from music21.note import Rest, Note, GeneralNote
 from music21.chord import Chord
@@ -36,7 +36,7 @@ class Sound:
         return self.__volume
 
     @property
-    def notes(self) -> Iterable[int]:
+    def notes(self) -> Sequence[int]:
         return self.__notes
 
     @property
