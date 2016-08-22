@@ -121,7 +121,7 @@ class Model:
 
         # Treat measures as 4/4 time
         length = 0.0
-        while length <= measures * 4:
+        while length < measures * 4:
             seed_ids, _ = self.__scores_to_matrices([seed])
 
             predictions = self.model.predict(seed_ids, verbose=False)[0]
