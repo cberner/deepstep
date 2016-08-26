@@ -25,9 +25,8 @@ import numpy as np
 
 from hyperflow import Hyperparameters, HyperparameterSpace, RandomWalk
 
-from deepstep.sound import Sound
+from deepstep.midi import Sound, midi_to_score
 from deepstep.model import Model
-from deepstep.utils import midi_to_score
 
 
 def loss(training_scores: List[List[Sound]],

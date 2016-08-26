@@ -20,7 +20,7 @@ import unittest
 
 from hyperflow import Hyperparameters
 
-from deepstep.sound import Sound
+from deepstep.midi import Sound
 from deepstep.model import expand_rest_notes, Model
 
 

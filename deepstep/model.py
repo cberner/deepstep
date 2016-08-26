@@ -27,7 +27,7 @@ from keras.layers.core import Dense, Reshape, Dropout
 
 from hyperflow import Hyperparameters
 
-from deepstep.sound import Sound
+from deepstep.midi import Sound
 
 
 def expand_rest_notes(score: Sequence[Sound], duration: float) -> List[Sound]:

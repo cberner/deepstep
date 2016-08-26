@@ -16,17 +16,74 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-from typing import List
+from typing import List, SupportsFloat, Any, Sequence
 
 from music21 import converter
 from music21.midi import MidiFile
 from music21.midi.translate import streamToMidiFile
 from music21.tempo import MetronomeMark
 from music21.stream import Stream
-from music21.note import Rest, Note
+from music21.note import Rest, Note, GeneralNote
 from music21.chord import Chord
 
-from deepstep.sound import Sound
+
+class Sound:
+    def __init__(self, volume: int, notes: List[int], duration: SupportsFloat) -> None:
+        self.__volume = volume
+        self.__notes = tuple(notes)
+        self.__duration = float(duration)
+
+    def is_rest(self) -> bool:
+        return not self.notes
+
+    @property
+    def volume(self) -> int:
+        return self.__volume
+
+    @property
+    def notes(self) -> Sequence[int]:
+        return self.__notes
+
+    @property
+    def duration(self) -> float:
+        return self.__duration
+
+    def to_midi_note(self) -> GeneralNote:
+        if self.is_rest():
+            return Rest(quarterLength=self.duration)
+        if len(self.__notes) == 1:
+            note = Note(quarterLength=self.duration)
+            note.pitch.midi = self.__notes[0]
+            note.volume = self.volume
+            return note
+        else:
+            chord = Chord(self.notes, quarterLength=self.duration)
+            chord.volume = self.volume
+            return chord
+
+    @staticmethod
+    def from_midi_note(note: GeneralNote) -> 'Sound':
+        notes = []
+        volume = None
+        if isinstance(note, Note):
+            notes.append(note.pitch.midi)
+            volume = note.volume.velocity
+        elif isinstance(note, Chord):
+            notes = [pitch.midi for pitch in note.pitches]
+            volume = note.volume.velocity
+        return Sound(volume, notes, note.quarterLength)
+
+    def __repr__(self) -> str:
+        return "volume={},notes={},duration={}".format(self.volume, self.notes, self.duration)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Sound):
+            return False
+        return (self.volume == other.volume and
+                self.notes == other.notes and self.duration == other.duration)
+
+    def __hash__(self) -> int:
+        return hash((self.volume, self.notes, self.duration))
 
 
 class ScoreMetadata:

@@ -25,9 +25,9 @@ import numpy as np
 from hyperflow import Hyperparameters
 
 # Suppression needed until PyLint 2.0 is out
-from deepstep.sound import Sound # pylint: disable=unused-import
+from deepstep.midi import Sound # pylint: disable=unused-import
+from deepstep.midi import midi_to_score, bpm_of_midi, write_score_as_midi
 from deepstep.model import Model
-from deepstep.utils import midi_to_score, bpm_of_midi, write_score_as_midi
 
 
 def main() -> None:

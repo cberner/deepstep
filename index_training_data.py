@@ -23,7 +23,7 @@ import shutil
 
 from music21.midi import MidiException
 
-from deepstep.utils import midi_to_metadata
+from deepstep.midi import midi_to_metadata
 
 
 def main() -> None:

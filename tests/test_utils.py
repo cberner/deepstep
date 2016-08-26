@@ -20,8 +20,8 @@ import unittest
 import tempfile
 import pkgutil
 
-from deepstep.sound import Sound
-from deepstep.utils import midi_to_score, bpm_of_midi, write_score_as_midi, midi_to_metadata
+from deepstep.midi import Sound
+from deepstep.midi import midi_to_score, bpm_of_midi, write_score_as_midi, midi_to_metadata
 
 class TestMidiUtils(unittest.TestCase):
     def setUp(self) -> None:
