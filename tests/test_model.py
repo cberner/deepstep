@@ -20,48 +20,32 @@ import unittest
 
 from hyperflow import Hyperparameters
 
-from deepstep.midi import Sound
-from deepstep.model import expand_rest_notes, Model
+from deepstep.midi import Sound, Track
+from deepstep.model import DNN
 
 
 class TestModel(unittest.TestCase):
-    def test_expand_rest_notes(self) -> None:
-        score = [Sound(volume=50, notes=[65], duration=1.0),
-                 Sound(volume=0, notes=[], duration=2.0),
-                 Sound(volume=50, notes=[65], duration=0.5)]
-        expected = [Sound(volume=50, notes=[65], duration=1.0),
-                    Sound(volume=0, notes=[], duration=1.0),
-                    Sound(volume=0, notes=[], duration=1.0),
-                    Sound(volume=50, notes=[65], duration=0.5)]
-        self.assertEqual(expand_rest_notes(score, 1.0), expected)
-
     def test_model(self) -> None:
-        sound = Sound(volume=50, notes=[65], duration=1.0)
-        rest = Sound(volume=0, notes=[], duration=1.0)
+        sound = Sound(volume=50, note=65, duration=1)
 
-        main_score = [sound, rest]
-        for _ in range(99):
-            main_score.append(sound)
-            main_score.append(rest)
+        main_score = []
+        for start in range(0, 100, 2):
+            main_score.append((start, sound))
 
         hyperparameters = Hyperparameters([10, 4], epochs=2, look_back=10)
-        model = Model(hyperparameters, notes=set([65]), look_back=10, sound_volume=50, sound_duration=1.0)
-        model.train([[], [sound, rest], main_score], epochs=2)
-        model.evaluate([main_score])
+        model = DNN(hyperparameters, notes={65}, look_back=10, sound_volume=50)
+        tracks = [Track([], ticks_per_beat=4),
+                  Track([(0, sound)], ticks_per_beat=4),
+                  Track(main_score, ticks_per_beat=4)]
+        model.train(tracks, epochs=2)
+        model.evaluate([Track(main_score, ticks_per_beat=4)])
 
-        generated = model.generate(main_score[:20], 25)
-        self.assertEqual(len(generated), 100)
+        generated = model.generate(Track(main_score[:20], ticks_per_beat=4), 25)
+        self.assertEqual(generated.duration, 100)
         found_note = False
-        found_rest = False
-        for sound in generated:
-            self.assertEqual(sound.duration, 1.0)
-            if sound.notes:
-                self.assertEqual(sound.volume, 50)
-                self.assertEqual(len(sound.notes), 1)
-                self.assertEqual(sound.notes[0], 65)
-                found_note = True
-            else:
-                self.assertEqual(sound.volume, 0)
-                found_rest = True
-        self.assertTrue(found_rest)
+        for start, sound in generated:
+            self.assertEqual(sound.duration, 1)
+            self.assertEqual(sound.volume, 50)
+            self.assertEqual(sound.note, 65)
+            found_note = True
         self.assertTrue(found_note)

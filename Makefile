@@ -7,6 +7,9 @@ test:
 	pylint --reports=n --max-line-length=120\
 		--disable=missing-docstring\
 		--disable=fixme\
+		--disable=unused-import\
+		--disable=too-many-statements\
+		--disable=too-many-branches\
 		--disable=too-many-locals\
 		--disable=too-many-arguments\
 		--disable=too-few-public-methods\

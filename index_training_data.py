@@ -21,8 +21,6 @@ import os
 import os.path
 import shutil
 
-from music21.midi import MidiException
-
 from deepstep.midi import midi_to_metadata
 
 
@@ -48,11 +46,7 @@ def main() -> None:
     more_than_one = 0
     too_few_notes = 0
     for path in paths:
-        try:
-            metadata = midi_to_metadata(path)
-        except MidiException:
-            # ignore
-            continue
+        metadata = midi_to_metadata(path)
         all_drums = True
         notes = 0
         for score in metadata:

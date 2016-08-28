@@ -25,26 +25,24 @@ import numpy as np
 
 from hyperflow import Hyperparameters, HyperparameterSpace, RandomWalk
 
-from deepstep.midi import Sound, midi_to_score
-from deepstep.model import Model
+from deepstep.midi import midi_to_track, Track
+from deepstep.model import NormalizedTime, DNN
 
 
-def loss(training_scores: List[List[Sound]],
-         validation_scores: List[List[Sound]],
+def loss(training_tracks: List[Track],
+         validation_tracks: List[Track],
          hyperparameters: Hyperparameters,
          notes: Set[int],
-         volume: int,
-         duration: int) -> float:
-    model = Model(hyperparameters, notes, hyperparameters.look_back, sound_volume=volume, sound_duration=duration)
-    model.train(training_scores, hyperparameters.epochs)
-    return model.evaluate(validation_scores)
+         volume: int) -> float:
+    model = NormalizedTime(DNN(hyperparameters, notes, hyperparameters.look_back, sound_volume=volume))
+    model.train(training_tracks, hyperparameters.epochs)
+    return model.evaluate(validation_tracks)
 
-def create_objective(training_scores: List[List[Sound]],
-                     validation_scores: List[List[Sound]],
+def create_objective(training_tracks: List[Track],
+                     validation_tracks: List[Track],
                      notes: Set[int],
-                     volume: int,
-                     duration: int) -> Callable[[Hyperparameters], float]:
-    return lambda parameters: loss(training_scores, validation_scores, parameters, notes, volume, duration)
+                     volume: int) -> Callable[[Hyperparameters], float]:
+    return lambda parameters: loss(training_tracks, validation_tracks, parameters, notes, volume)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="DNN to generate music")
@@ -61,23 +59,23 @@ def main() -> None:
     for filename in os.listdir(expanded_name):
         paths.append(os.path.join(expanded_name, filename))
 
-    all_notes = set() # type: set[int]
-    sounds = set() # type: Set[Sound]
-    scores = []
+    all_notes = set() # type: Set[int]
+    tracks = []
+    volumes = []
+    durations = []
     for path in paths:
-        score = midi_to_score(path, verbose=(args.verbose > 1))
-        scores.append(score)
-        sounds = sounds.union(set(score))
-        for sound in score:
-            all_notes = all_notes.union(set(sound.notes))
+        track = midi_to_track(path, verbose=(args.verbose > 1))
+        tracks.append(track)
+        for _, sound in track:
+            all_notes.add(sound.note)
+            volumes.append(sound.volume)
+            durations.append(sound.duration)
 
-    sound_volume = np.median([sound.volume for sound in sounds if sound.volume])
-    # Treat all notes as the same duration
-    sound_duration = np.median([sound.duration for sound in sounds if not sound.is_rest()])
+    sound_volume = int(np.median(volumes))
 
-    split = len(scores) // 10
-    validation_scores = scores[:split]
-    training_scores = scores[split:]
+    split = len(tracks) // 10
+    validation_scores = tracks[:split]
+    training_scores = tracks[split:]
 
     space = HyperparameterSpace([1, 1, 1, 1], [500, 500, 500, 500], 1, 50, 1, 20)
 
@@ -85,8 +83,7 @@ def main() -> None:
     objective = create_objective(training_scores,
                                  validation_scores,
                                  all_notes,
-                                 sound_volume,
-                                 sound_duration)
+                                 sound_volume)
     best_loss, best_parameters = optimizer.minimize(objective, args.budget)
     print("Loss: " + str(best_loss))
     print("Parameters: " + str(best_parameters))

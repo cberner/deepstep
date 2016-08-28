@@ -15,9 +15,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
-
+from abc import ABC, abstractmethod
 from typing import List, Set, Tuple, Sequence
-from collections import deque
 import random
 
 import numpy as np
@@ -27,32 +26,33 @@ from keras.layers.core import Dense, Reshape, Dropout
 
 from hyperflow import Hyperparameters
 
-from deepstep.midi import Sound
+from deepstep.midi import Sound, Track
 
 
-def expand_rest_notes(score: Sequence[Sound], duration: float) -> List[Sound]:
-    result = []
-    for sound in score:
-        if not sound.is_rest():
-            result.append(sound)
-            continue
-        rest_duration = sound.duration
-        while rest_duration > 0:
-            result.append(Sound(volume=0, notes=[], duration=duration))
-            rest_duration -= duration
-    return result
+class Model(ABC):
+    @abstractmethod
+    def train(self, tracks: List[Track], epochs: int) -> None:
+        pass
+
+    @abstractmethod
+    def evaluate(self, tracks: List[Track]) -> float:
+        pass
+
+    @abstractmethod
+    def generate(self, seed_track: Track, measures: int) -> Track:
+        pass
 
 
-class Model:
+class DNN(Model):
     def __init__(self,
                  hyperparameters: Hyperparameters,
                  notes: Set[int],
                  look_back: int,
-                 sound_volume: int,
-                 sound_duration: float) -> None:
+                 sound_volume: int) -> None:
         self.look_back = look_back
         self.sound_volume = sound_volume
-        self.sound_duration = sound_duration
+        # TOOD: support variable length note prediction
+        self.sound_duration = 1
         self.id_to_note = dict((i, note) for (i, note) in enumerate(sorted(notes)))
         self.note_to_id = dict((note, i) for (i, note) in enumerate(sorted(notes)))
 
@@ -70,73 +70,109 @@ class Model:
         model.compile(loss='binary_crossentropy', optimizer='adam')
         self.model = model
 
-    def train(self, scores: List[List[Sound]], epochs: int) -> None:
-        examples, labels = self.__scores_to_matrices(scores)
+    def train(self, tracks: List[Track], epochs: int) -> None:
+        examples, labels = self.__scores_to_matrices(tracks)
         self.model.fit(examples, labels, nb_epoch=epochs)
 
-    def evaluate(self, scores: List[List[Sound]]) -> float:
-        examples, labels = self.__scores_to_matrices(scores)
+    def evaluate(self, tracks: List[Track]) -> float:
+        examples, labels = self.__scores_to_matrices(tracks)
         return self.model.evaluate(examples, labels, verbose=False)
 
-    def __scores_to_matrices(self, scores: Sequence[Sequence[Sound]]) -> Tuple[np.ndarray, np.ndarray]:
-        expanded_scores = []
-        for score in scores:
-            expanded = expand_rest_notes(score, self.sound_duration)
-            if len(expanded) > self.look_back:
-                expanded_scores.append(expanded)
-
+    def __scores_to_matrices(self, tracks: Sequence[Track]) -> Tuple[np.ndarray, np.ndarray]:
         num_ids = len(self.note_to_id)
         num_examples = 0
-        for score in expanded_scores:
-            num_examples += len(score) - self.look_back
+        for track in tracks:
+            assert track.ticks_per_beat == 4, "Track must be in sixteenth notes"
+            if track.duration > self.look_back:
+                num_examples += track.duration - self.look_back
         assert num_examples > 0
 
         examples = np.zeros((num_examples, self.look_back, num_ids), dtype=np.bool)
         labels = np.zeros((num_examples, num_ids), dtype=np.bool)
         example_num = 0
-        for score in expanded_scores:
-            for i in range(len(score) - self.look_back):
+        for track in tracks:
+            for i in range(track.duration - self.look_back):
                 # Copy the seed section of the score
                 for j in range(self.look_back):
-                    for note in score[i + j].notes:
-                        examples[example_num, j, self.note_to_id[note]] = 1
+                    for _, sound in track[i + j]:
+                        examples[example_num, j, self.note_to_id[sound.note]] = 1
                 # Copy the expected next note of the score
-                for note in score[i + self.look_back].notes:
-                    labels[example_num, self.note_to_id[note]] = 1
+                for _, sound in track[i + self.look_back]:
+                    labels[example_num, self.note_to_id[sound.note]] = 1
                 example_num += 1
 
         return (examples, labels)
 
-    def generate(self, seed_score: List[Sound], measures: int) -> List[Sound]:
-        generated = []
-        seed = deque() # type: deque[Sound]
-        for sound in seed_score[:self.look_back + 1]:
-            notes = [] # type: List[int]
-            for note in sound.notes:
-                if note not in self.note_to_id:
-                    notes.append(random.choice(list(self.note_to_id.keys())))
-                else:
-                    notes.append(note)
-            seed.append(Sound(notes=notes, volume=sound.volume, duration=sound.duration))
+    def generate(self, seed_track: Track, measures: int) -> Track:
+        seed = [] # type: List[Tuple[int, Sound]]
+        for start, sound in seed_track[:self.look_back + 1]:
+            note = sound.note
+            if note not in self.note_to_id:
+                note = random.choice(list(self.note_to_id.keys()))
+            seed.append((start, Sound(note=note, volume=sound.volume, duration=self.sound_duration)))
 
         # Treat measures as 4/4 time
-        length = 0.0
+        length = 0
+        generated = []
         while length < measures * 4:
-            seed_ids, _ = self.__scores_to_matrices([seed])
+            track = Track(seed, seed_track.ticks_per_beat, duration=self.look_back + 1)
+            seed_ids, _ = self.__scores_to_matrices([track])
 
+            # TODO: seed_ids could have more than one example, if the last notes have a duration > 1
+            # just take the results of the first one, but should remove them from seed_ids
             predictions = self.model.predict(seed_ids, verbose=False)[0]
             predicted_note_ids = []
             for i, prediction in enumerate(predictions):
                 if prediction > random.random():
                     predicted_note_ids.append(i)
 
-            notes = [self.id_to_note[note_id] for note_id in predicted_note_ids]
-            sound = Sound(notes=notes,
-                          volume=self.sound_volume if notes else 0,
-                          duration=self.sound_duration)
-            seed.popleft()
-            seed.append(sound)
-            generated.append(sound)
-            length += sound.duration
+            for note_id in predicted_note_ids:
+                note = self.id_to_note[note_id]
 
-        return generated
+                sound = Sound(note=note,
+                              volume=self.sound_volume,
+                              duration=self.sound_duration)
+                seed.append((length, sound))
+                generated.append((length, sound))
+            seed = [(start - self.sound_duration, sound) for start, sound in seed if start >= self.sound_duration]
+            length += self.sound_duration
+
+        return Track(generated, seed_track.ticks_per_beat, duration=length)
+
+
+class NormalizedTime(Model):
+    def __init__(self, delegate: Model) -> None:
+        self.__delegate = delegate
+
+    def train(self, tracks: List[Track], epochs: int) -> None:
+        self.__delegate.train([self.__normalize(track) for track in tracks], epochs)
+
+    def evaluate(self, tracks: List[Track]) -> float:
+        return self.__delegate.evaluate([self.__normalize(track) for track in tracks])
+
+    def generate(self, seed_track: Track, measures: int) -> Track:
+        generated = self.__delegate.generate(self.__normalize(seed_track), measures)
+        return self.__unnormalize(generated)
+
+    @staticmethod
+    def __normalize(track: Track) -> Track:
+        events = []
+        for start, sound in track:
+            #TODO: For now just normalize everything to 16th notes
+            sixteenth_notes = sound.duration * 4 // track.ticks_per_beat
+            if sixteenth_notes == 0:
+                sixteenth_notes = 1
+            sound = Sound(volume=sound.volume, note=sound.note, duration=sixteenth_notes)
+            events.append((start * 4 // track.ticks_per_beat, sound))
+        return Track(events, ticks_per_beat=4)
+
+    @staticmethod
+    def __unnormalize(track: Track) -> Track:
+        events = []
+        for start, sound in track:
+            ticks = sound.duration * track.ticks_per_beat // 4
+            if ticks == 0:
+                ticks = 1
+            sound = Sound(volume=sound.volume, note=sound.note, duration=ticks)
+            events.append((start * track.ticks_per_beat // 4, sound))
+        return Track(events, ticks_per_beat=4)
