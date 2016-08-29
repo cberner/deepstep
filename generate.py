@@ -65,7 +65,7 @@ def main() -> None:
 
     sound_volume = int(np.median(volumes))
 
-    split = len(tracks) // 10
+    split = len(tracks) // 2
     validation_scores = tracks[:split]
     training_scores = tracks[split:]
     model = NormalizedTime(DNN(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume))

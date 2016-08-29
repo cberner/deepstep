@@ -47,7 +47,7 @@ def create_objective(training_tracks: List[Track],
 def main() -> None:
     parser = argparse.ArgumentParser(description="DNN to generate music")
     parser.add_argument('files', type=str, help="Directory of training data")
-    parser.add_argument('--validation_percent', type=int, default=10, help="Percentage of data to use for validation")
+    parser.add_argument('--validation_percent', type=int, default=50, help="Percentage of data to use for validation")
     parser.add_argument('--budget', type=int, default=60, help="Time budget in seconds")
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Verbosity")
 
