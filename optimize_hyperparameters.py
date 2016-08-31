@@ -29,11 +29,11 @@ from deepstep.midi import midi_to_track, Track
 from deepstep.model import NormalizedTime, DNN
 
 
-def loss(training_tracks: List[Track],
-         validation_tracks: List[Track],
-         hyperparameters: Hyperparameters,
-         notes: Set[int],
-         volume: int) -> float:
+def model_loss(training_tracks: List[Track],
+               validation_tracks: List[Track],
+               hyperparameters: Hyperparameters,
+               notes: Set[int],
+               volume: int) -> float:
     model = NormalizedTime(DNN(hyperparameters, notes, hyperparameters.look_back, sound_volume=volume))
     model.train(training_tracks, hyperparameters.epochs)
     return model.evaluate(validation_tracks)
@@ -42,7 +42,7 @@ def create_objective(training_tracks: List[Track],
                      validation_tracks: List[Track],
                      notes: Set[int],
                      volume: int) -> Callable[[Hyperparameters], float]:
-    return lambda parameters: loss(training_tracks, validation_tracks, parameters, notes, volume)
+    return lambda parameters: model_loss(training_tracks, validation_tracks, parameters, notes, volume)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="DNN to generate music")
@@ -73,20 +73,21 @@ def main() -> None:
 
     sound_volume = int(np.median(volumes))
 
-    split = len(tracks) // 10
+    split = len(tracks) * args.validation_percent // 100
     validation_scores = tracks[:split]
     training_scores = tracks[split:]
 
-    space = HyperparameterSpace([1, 1, 1, 1], [500, 500, 500, 500], 1, 50, 1, 20)
+    space = HyperparameterSpace([1, 1, 1, 1], [500, 500, 500, 500], 1, 20, 1, 20)
 
     optimizer = RandomWalk(space)
     objective = create_objective(training_scores,
                                  validation_scores,
                                  all_notes,
                                  sound_volume)
-    best_loss, best_parameters = optimizer.minimize(objective, args.budget)
-    print("Loss: " + str(best_loss))
-    print("Parameters: " + str(best_parameters))
+    for loss, parameters in optimizer.minimize(objective, args.budget):
+        print("Loss: " + str(loss))
+        print("Parameters: " + str(parameters))
+        print()
 
 if __name__ == '__main__':
     main()

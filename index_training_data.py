@@ -35,6 +35,7 @@ def main() -> None:
     expanded_name = os.path.expanduser(args.files)
     paths = []
     assert os.path.isdir(expanded_name)
+    assert os.path.isdir(os.path.expanduser(args.output))
     for dirname, _, filenames in os.walk(expanded_name):
         for filename in filenames:
             ext = os.path.splitext(filename)[1].lower()
@@ -46,7 +47,13 @@ def main() -> None:
     more_than_one = 0
     too_few_notes = 0
     for path in paths:
-        metadata = midi_to_metadata(path)
+        try:
+            metadata = midi_to_metadata(path)
+        except KeyboardInterrupt:
+            print("Exiting")
+        except BaseException:
+            print("Skipping " + path)
+            continue
         all_drums = True
         notes = 0
         for score in metadata:

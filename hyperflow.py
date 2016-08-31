@@ -84,14 +84,21 @@ class RandomWalk:
 
     def minimize(self,
                  objective: Callable[[Hyperparameters], float],
-                 budget_secs: int) -> Tuple[float, Hyperparameters]:
-        best_loss = math.inf
-        best_parameters = None
+                 budget_secs: int,
+                 results: int=10) -> List[Tuple[float, Hyperparameters]]:
+        ranked_results = [(math.inf, None)] # type: List[Tuple[float, Hyperparameters]]
         start_time = time.monotonic() # type: ignore. Mypy seems to be broken. It can't find "monotonic"
-        while time.monotonic() - start_time < budget_secs: # type: ignore
-            parameters = self.__space.sample()
-            loss = objective(parameters)
-            if loss < best_loss:
-                best_loss = loss
-                best_parameters = parameters
-        return (best_loss, best_parameters)
+        try:
+            while time.monotonic() - start_time < budget_secs: # type: ignore
+                parameters = self.__space.sample()
+                loss = objective(parameters)
+                print("{} -> {} loss".format(parameters, loss))
+                if loss < ranked_results[-1][0]:
+                    ranked_results.append((loss, parameters))
+                    ranked_results.sort(key=lambda x: x[0])
+                    ranked_results = ranked_results[:results]
+        except KeyboardInterrupt:
+            # Stop optimizing and return
+            print("Stopping optimization...")
+
+        return [x for x in ranked_results if x[0] < math.inf]
