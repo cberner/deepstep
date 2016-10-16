@@ -24,7 +24,7 @@ import os.path
 
 import numpy as np
 
-from hyperflow import Hyperparameters
+from hyperflow import Hyperparameters, NeuralLayer
 
 from deepstep.midi import midi_to_track, bpm_of_midi, write_track_as_midi
 from deepstep.model import NormalizedTime, DNN
@@ -41,7 +41,11 @@ def main() -> None:
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Verbosity")
 
     args = parser.parse_args()
-    hyperparameters = Hyperparameters([250, 100, 50, 25], epochs=args.epochs, look_back=args.look_back)
+    hyperparameters = Hyperparameters([NeuralLayer.lstm(250),
+                                       NeuralLayer.lstm(100),
+                                       NeuralLayer.dense(50),
+                                       NeuralLayer.dense(25)],
+                                      epochs=args.epochs, look_back=args.look_back)
 
     expanded_name = os.path.expanduser(args.training_files)
     paths = []

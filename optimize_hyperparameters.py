@@ -77,7 +77,10 @@ def main() -> None:
     validation_scores = tracks[:split]
     training_scores = tracks[split:]
 
-    space = HyperparameterSpace([1, 1, 1, 1], [500, 500, 500, 500], 1, 20, 1, 20)
+    space = HyperparameterSpace([1, 1], [500, 500],
+                                [1, 1], [500, 500],
+                                1, 20,
+                                1, 20)
 
     optimizer = RandomWalk(space)
     objective = create_objective(training_scores,

@@ -18,7 +18,7 @@ limitations under the License.
 
 import unittest
 
-from hyperflow import Hyperparameters
+from hyperflow import Hyperparameters, NeuralLayer
 
 from deepstep.midi import Sound, Track
 from deepstep.model import DNN
@@ -32,7 +32,7 @@ class TestModel(unittest.TestCase):
         for start in range(0, 100, 2):
             main_score.append((start, sound))
 
-        hyperparameters = Hyperparameters([10, 4], epochs=2, look_back=10)
+        hyperparameters = Hyperparameters([NeuralLayer.dense(10), NeuralLayer.dense(4)], epochs=2, look_back=10)
         model = DNN(hyperparameters, notes={65}, look_back=10, sound_volume=50)
         tracks = [Track([], ticks_per_beat=4),
                   Track([(0, sound)], ticks_per_beat=4),

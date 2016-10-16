@@ -21,16 +21,52 @@ import time
 import math
 
 from typing import List, Callable, Any, Tuple
+from enum import Enum
+
+
+class NeuralLayerType(Enum):
+    LSTM = 1
+    DENSE = 2
+
+
+class NeuralLayer:
+    @staticmethod
+    def dense(neurons: int) -> 'NeuralLayer':
+        return NeuralLayer(NeuralLayerType.DENSE, neurons)
+
+    @staticmethod
+    def lstm(neurons: int) -> 'NeuralLayer':
+        return NeuralLayer(NeuralLayerType.LSTM, neurons)
+
+    def __init__(self, layer_type: NeuralLayerType, neurons: int) -> None:
+        self.__layer_type = layer_type
+        self.__neurons = neurons
+
+    @property
+    def layer_type(self) -> NeuralLayerType:
+        return self.__layer_type
+
+    @property
+    def neurons(self) -> int:
+        return self.__neurons
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, NeuralLayer):
+            return False
+        return self.layer_type == other.layer_type and self.neurons == other.neurons
+
+    def __hash__(self) -> int:
+        return hash((self.layer_type, self.neurons))
 
 
 class Hyperparameters:
-    def __init__(self, layers: List[int], epochs: int, look_back: int) -> None:
+    def __init__(self, layers: List[NeuralLayer], epochs: int, look_back: int) -> None:
         self.__layers = layers
         self.__epochs = epochs
         self.__look_back = look_back
 
     @property
-    def layers(self) -> List[int]:
+    def layers(self) -> List[NeuralLayer]:
         return self.__layers
 
     @property
@@ -55,15 +91,20 @@ class Hyperparameters:
 
 class HyperparameterSpace:
     def __init__(self,
-                 layer_mins: List[int],
-                 layer_maxs: List[int],
+                 lstm_layer_mins: List[int],
+                 lstm_layer_maxs: List[int],
+                 dense_layer_mins: List[int],
+                 dense_layer_maxs: List[int],
                  min_epochs: int,
                  max_epochs: int,
                  min_look_back: int,
                  max_look_back: int) -> None:
-        assert len(layer_mins) == len(layer_maxs)
-        self.__layer_mins = layer_mins
-        self.__layer_maxs = layer_maxs
+        assert len(lstm_layer_mins) == len(lstm_layer_maxs)
+        assert len(dense_layer_mins) == len(dense_layer_maxs)
+        self.__lstm_layer_mins = lstm_layer_mins
+        self.__lstm_layer_maxs = lstm_layer_maxs
+        self.__dense_layer_mins = dense_layer_mins
+        self.__dense_layer_maxs = dense_layer_maxs
         self.__min_epochs = min_epochs
         self.__max_epochs = max_epochs
         self.__min_look_back = min_look_back
@@ -71,8 +112,10 @@ class HyperparameterSpace:
 
     def sample(self) -> Hyperparameters:
         layers = []
-        for i in range(len(self.__layer_mins)):
-            layers.append(random.randint(self.__layer_mins[i], self.__layer_maxs[i]))
+        for i in range(len(self.__lstm_layer_mins)):
+            layers.append(NeuralLayer.lstm(random.randint(self.__lstm_layer_mins[i], self.__lstm_layer_maxs[i])))
+        for i in range(len(self.__dense_layer_mins)):
+            layers.append(NeuralLayer.dense(random.randint(self.__dense_layer_mins[i], self.__dense_layer_maxs[i])))
         epochs = random.randint(self.__min_epochs, self.__max_epochs)
         look_back = random.randint(self.__min_look_back, self.__max_look_back)
         return Hyperparameters(layers, epochs=epochs, look_back=look_back)

@@ -9,6 +9,7 @@ test:
 		--disable=fixme\
 		--disable=unused-import\
 		--disable=too-many-statements\
+		--disable=too-many-instance-attributes\
 		--disable=too-many-branches\
 		--disable=too-many-locals\
 		--disable=too-many-arguments\

@@ -16,15 +16,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 from abc import ABC, abstractmethod
-from typing import List, Set, Tuple, Sequence
+from typing import List, Set, Tuple, Sequence, Any
 import random
 
 import numpy as np
 
 from keras.models import Sequential
 from keras.layers.core import Dense, Reshape, Dropout
+from keras.layers.recurrent import LSTM
 
-from hyperflow import Hyperparameters
+from hyperflow import Hyperparameters, NeuralLayerType
 
 from deepstep.midi import Sound, Track
 
@@ -57,13 +58,26 @@ class DNN(Model):
         self.note_to_id = dict((note, i) for (i, note) in enumerate(sorted(notes)))
 
         model = Sequential()
-        model.add(Reshape((self.look_back * len(notes),), input_shape=(self.look_back, len(notes))))
+        # Dense layers require that the input be reshaped to remove the temporal dimension
+        if hyperparameters.layers[0].layer_type == NeuralLayerType.DENSE:
+            model.add(Reshape((self.look_back * len(notes),), input_shape=(self.look_back, len(notes))))
 
         first_layer = True
-        for neurons in hyperparameters.layers:
+        for i, layer in enumerate(hyperparameters.layers):
             if not first_layer:
                 model.add(Dropout(0.2))
-            model.add(Dense(neurons, activation='relu'))
+            if layer.layer_type == NeuralLayerType.DENSE:
+                model.add(Dense(layer.neurons, activation='relu'))
+            elif layer.layer_type == NeuralLayerType.LSTM:
+                parameters = {} # type: dict[str, Any]
+                if first_layer:
+                    parameters['input_shape'] = (self.look_back, len(notes))
+                if i + 1 < len(hyperparameters.layers) and \
+                    hyperparameters.layers[i + 1].layer_type == NeuralLayerType.LSTM:
+                    parameters['return_sequences'] = True
+                model.add(LSTM(layer.neurons, **parameters))
+            else:
+                raise Exception("Unsupported layer type: " + str(layer.layer_type))
             first_layer = False
 
         model.add(Dense(len(notes), activation='sigmoid'))
