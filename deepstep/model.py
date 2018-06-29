@@ -67,7 +67,7 @@ class GAN(Model):
         # TODO: close this
         self.session = tf.Session(graph=tf.Graph())
 
-        with self.session.as_default():
+        with self.session.graph.as_default():
             self.model = DCGAN(self.session,
                                output_height=self.max_size,
                                output_width=next_power_of_2(len(notes)),
@@ -75,7 +75,7 @@ class GAN(Model):
 
     def train(self, tracks: List[Track], epochs: int) -> None:
         examples = self.__scores_to_matrices(tracks)
-        with self.session.as_default():
+        with self.session.graph.as_default():
             self.model.train(learning_rate=0.0002, beta1=0.5, epochs=epochs, data=examples)
 
     def evaluate(self, tracks: List[Track]) -> float:
@@ -113,7 +113,7 @@ class GAN(Model):
         # but need to pass it twice to have enough data for the batch size
         seed_matrix = self.__scores_to_matrices([seed_track, seed_track])
 
-        with self.session.as_default():
+        with self.session.graph.as_default():
             generated_matrix = self.model.generate(seed_matrix)[0][0]
         generated = []
         for note_id in range(self.max_size):

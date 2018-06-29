@@ -1,6 +1,6 @@
 wheel
 
-tensorflow==1.0.1
+tensorflow==1.2.1
 
 mido==1.1.15
 numpy==1.14.5
