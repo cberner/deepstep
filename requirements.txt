@@ -1,10 +1,10 @@
 wheel
 
-tensorflow==1.2.1
+tensorflow==1.5.1
 
 mido==1.1.15
 numpy==1.14.5
-keras==2.0.9
+keras==2.1.6
 
 # for tests
 mypy-lang==0.4.3
