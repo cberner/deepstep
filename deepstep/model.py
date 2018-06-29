@@ -197,7 +197,7 @@ class DNN(Model):
 
     def train(self, tracks: List[Track], epochs: int) -> None:
         examples, labels = self.__scores_to_matrices(tracks)
-        self.model.fit(examples, labels, nb_epoch=epochs)
+        self.model.fit(examples, labels, epochs=epochs)
 
     def evaluate(self, tracks: List[Track]) -> float:
         examples, labels = self.__scores_to_matrices(tracks)
