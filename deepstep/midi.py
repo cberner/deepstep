@@ -67,7 +67,7 @@ class Sound:
 
 
 class Track(collections.Iterable):
-    def __init__(self, sounds: Sequence[Tuple[int, Sound]], ticks_per_beat: int, duration: int=None) -> None:
+    def __init__(self, sounds: Sequence[Tuple[int, Sound]], ticks_per_beat: int, duration: int = None) -> None:
         self.__sounds = sorted(sounds, key=lambda x: x[0])
         self.__starts = [start for start, sound in self.__sounds]
         self.__max_sound_duration = max([sound.duration for start, sound in sounds], default=0)
@@ -126,7 +126,7 @@ class TrackMetadata:
         return self.__notes
 
 
-def midi_to_track(filename: str, verbose: bool=False) -> Track:
+def midi_to_track(filename: str, verbose: bool = False) -> Track:
     with MidiFile(filename) as midi_file:
         if verbose:
             print("MIDI:")

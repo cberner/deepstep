@@ -27,7 +27,7 @@ import numpy as np
 from hyperflow import Hyperparameters, NeuralLayer
 
 from deepstep.midi import midi_to_track, bpm_of_midi, write_track_as_midi
-from deepstep.model import NormalizedTime, DNN
+from deepstep.model import NormalizedTime, DNN, GAN
 
 
 def main() -> None:
@@ -39,6 +39,7 @@ def main() -> None:
     parser.add_argument('--measures', type=int, default=100, help="Measures of output to generate")
     parser.add_argument('--look_back', type=int, default=20, help="Look back distance during training")
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Verbosity")
+    parser.add_argument('--use-gan', action='store_true', help="Use GAN [experimental]")
 
     args = parser.parse_args()
     hyperparameters = Hyperparameters([NeuralLayer.lstm(250),
@@ -77,7 +78,10 @@ def main() -> None:
     print("Validation loss: " + str(model.evaluate(validation_scores)))
 
     # re-train on all scores
-    model = NormalizedTime(DNN(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume))
+    if args.use_gan:
+        model = NormalizedTime(GAN(all_notes, sound_volume=sound_volume))
+    else:
+        model = NormalizedTime(DNN(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume))
     model.train(tracks, args.epochs)
 
     seed_score = midi_to_track(os.path.expanduser(args.seed_file), verbose=(args.verbose > 0))

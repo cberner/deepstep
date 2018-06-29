@@ -4,5 +4,7 @@
 seed.midi
 diagnostic.midi
 out.midi
-training_data
+training_data/
+logs/
+samples/
 .idea

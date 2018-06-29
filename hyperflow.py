@@ -128,7 +128,7 @@ class RandomWalk:
     def minimize(self,
                  objective: Callable[[Hyperparameters], float],
                  budget_secs: int,
-                 results: int=10) -> List[Tuple[float, Hyperparameters]]:
+                 results: int = 10) -> List[Tuple[float, Hyperparameters]]:
         ranked_results = [(math.inf, None)] # type: List[Tuple[float, Hyperparameters]]
         start_time = time.monotonic() # type: ignore. Mypy seems to be broken. It can't find "monotonic"
         try:

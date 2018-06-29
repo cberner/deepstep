@@ -20,12 +20,13 @@ import unittest
 
 from hyperflow import Hyperparameters, NeuralLayer
 
+
 from deepstep.midi import Sound, Track
-from deepstep.model import DNN
+from deepstep.model import DNN, GAN
 
 
 class TestModel(unittest.TestCase):
-    def test_model(self) -> None:
+    def test_dnn(self) -> None:
         sound = Sound(volume=50, note=65, duration=1)
 
         main_score = []
@@ -45,6 +46,29 @@ class TestModel(unittest.TestCase):
         found_note = False
         for start, sound in generated:
             self.assertEqual(sound.duration, 1)
+            self.assertEqual(sound.volume, 50)
+            self.assertEqual(sound.note, 65)
+            found_note = True
+        self.assertTrue(found_note)
+
+    def test_gan(self) -> None:
+        sound = Sound(volume=50, note=65, duration=1)
+
+        main_score = []
+        for start in range(0, 300, 2):
+            main_score.append((start, sound))
+
+        model = GAN(notes={65}, sound_volume=50)
+        tracks = [Track([], ticks_per_beat=4),
+                  Track([(0, sound)], ticks_per_beat=4),
+                  Track(main_score, ticks_per_beat=4)]
+        model.train(tracks, epochs=2)
+
+        generated = model.generate(Track(main_score[:100], ticks_per_beat=4), 4)
+        self.assertGreaterEqual(generated.duration, 16)
+        found_note = False
+        for start, sound in generated:
+            self.assertGreaterEqual(sound.duration, 1)
             self.assertEqual(sound.volume, 50)
             self.assertEqual(sound.note, 65)
             found_note = True
