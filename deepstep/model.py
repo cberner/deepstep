@@ -23,13 +23,16 @@ from abc import ABC, abstractmethod
 import numpy as np
 import tensorflow as tf
 
-from keras.layers.core import Dense, Reshape, Dropout
-from keras.layers.recurrent import LSTM
-from keras.models import Sequential
-
 from deepstep.midi import Sound, Track
 from hyperflow import Hyperparameters, NeuralLayerType
 from libs.dcgan import DCGAN
+
+
+Dense = tf.keras.layers.Dense
+Reshape = tf.keras.layers.Reshape
+Dropout = tf.keras.layers.Dropout
+LSTM = tf.keras.layers.LSTM
+Sequential = tf.keras.models.Sequential
 
 
 class Model(ABC):
