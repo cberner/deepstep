@@ -3,7 +3,7 @@
 all: test
 
 test:
-	mypy --disallow-untyped-defs --silent-imports deepstep/ *.py tests/
+	mypy --disallow-untyped-defs --ignore-missing-imports --follow-imports=silent deepstep/ *.py tests/
 	pylint --reports=n --max-line-length=120\
 		--disable=missing-docstring\
 		--disable=fixme\

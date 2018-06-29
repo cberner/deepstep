@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
-from typing import List, Set, Tuple, Sequence, Any
+from typing import List, Set, Tuple, Sequence, Any, MutableMapping
 
 import random
 from abc import ABC, abstractmethod
@@ -183,7 +183,7 @@ class DNN(Model):
             if layer.layer_type == NeuralLayerType.DENSE:
                 model.add(Dense(layer.neurons, activation='relu'))
             elif layer.layer_type == NeuralLayerType.LSTM:
-                parameters = {} # type: dict[str, Any]
+                parameters: MutableMapping[str, Any] = {}
                 if first_layer:
                     parameters['input_shape'] = (self.look_back, len(notes))
                 if i + 1 < len(hyperparameters.layers) and \

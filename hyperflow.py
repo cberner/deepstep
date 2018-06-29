@@ -20,7 +20,7 @@ import random
 import time
 import math
 
-from typing import List, Callable, Any, Tuple
+from typing import List, Callable, Any, Tuple, Optional
 from enum import Enum
 
 
@@ -128,9 +128,9 @@ class RandomWalk:
     def minimize(self,
                  objective: Callable[[Hyperparameters], float],
                  budget_secs: int,
-                 results: int = 10) -> List[Tuple[float, Hyperparameters]]:
-        ranked_results = [(math.inf, None)] # type: List[Tuple[float, Hyperparameters]]
-        start_time = time.monotonic() # type: ignore. Mypy seems to be broken. It can't find "monotonic"
+                 results: int = 10) -> List[Tuple[float, Optional[Hyperparameters]]]:
+        ranked_results: List[Tuple[float, Optional[Hyperparameters]]] = [(math.inf, None)]
+        start_time = time.monotonic()
         try:
             while time.monotonic() - start_time < budget_secs: # type: ignore
                 parameters = self.__space.sample()
