@@ -70,12 +70,14 @@ def main() -> None:
 
     sound_volume = int(np.median(volumes))
 
-    split = len(tracks) // 2
-    validation_scores = tracks[:split]
-    training_scores = tracks[split:]
-    model = NormalizedTime(DNN(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume))
-    model.train(training_scores, args.epochs)
-    print("Validation loss: " + str(model.evaluate(validation_scores)))
+    # Validation doesn't make sense for a GAN
+    if not args.use_gan:
+        split = len(tracks) // 2
+        validation_scores = tracks[:split]
+        training_scores = tracks[split:]
+        model = NormalizedTime(DNN(hyperparameters, all_notes, args.look_back, sound_volume=sound_volume))
+        model.train(training_scores, args.epochs)
+        print("Validation loss: " + str(model.evaluate(validation_scores)))
 
     # re-train on all scores
     if args.use_gan:
