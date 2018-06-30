@@ -64,7 +64,7 @@ class TestModel(unittest.TestCase):
                   Track(main_score, ticks_per_beat=4)]
         model.train(tracks, epochs=2)
 
-        generated = model.generate(Track(main_score[:100], ticks_per_beat=4), 4)
+        generated = model.generate(Track(main_score[:100], ticks_per_beat=4), 8)
         self.assertGreaterEqual(generated.duration, 16)
         found_note = False
         for start, sound in generated:

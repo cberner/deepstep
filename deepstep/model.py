@@ -124,24 +124,12 @@ class GAN(Model):
                 continue
 
             note = self.id_to_note[note_id]
-            start = -1
+            start = None
             for i in range(generated_matrix.shape[0]):
                 present = generated_matrix[i, note_id][0] > 0
                 starting = generated_matrix[i, note_id][1] > 0
-                if not present:
-                    if starting:
-                        print("Bad prediction: starting a note, but it's not present")
-                    if start == -1:
-                        # not in a note, and not starting one
-                        continue
-                    else:
-                        # end the note
-                        sound = Sound(note=note,
-                                      volume=self.sound_volume,
-                                      duration=(i - start) * self.sound_duration)
-                        generated.append((start * self.sound_duration, sound))
-                else:
-                    if start == -1:
+                if present:
+                    if start is None:
                         if not starting:
                             print("Bad prediction: note became present without explicitly starting")
                         # start a new note
@@ -154,6 +142,19 @@ class GAN(Model):
                                           duration=(i - start) * self.sound_duration)
                             generated.append((start * self.sound_duration, sound))
                             start = i
+                else:
+                    if starting:
+                        print("Bad prediction: starting a note, but it's not present")
+                    if start is None:
+                        # not in a note, and not starting one
+                        continue
+                    else:
+                        # end the note
+                        sound = Sound(note=note,
+                                      volume=self.sound_volume,
+                                      duration=(i - start) * self.sound_duration)
+                        generated.append((start * self.sound_duration, sound))
+                        start = None
 
         return Track(Track(generated, seed_track.ticks_per_beat)[:measures * 4], seed_track.ticks_per_beat)
 
