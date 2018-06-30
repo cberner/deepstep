@@ -59,7 +59,7 @@ def main() -> None:
     for filename in os.listdir(expanded_name):
         paths.append(os.path.join(expanded_name, filename))
 
-    all_notes = set() # type: Set[int]
+    all_notes: Set[int] = set()
     tracks = []
     volumes = []
     durations = []

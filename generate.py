@@ -56,7 +56,7 @@ def main() -> None:
     else:
         paths.append(expanded_name)
 
-    all_notes = set() # type: Set[int]
+    all_notes: Set[int] = set()
     tracks = []
     volumes = []
     durations = []

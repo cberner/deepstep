@@ -16,8 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 from typing import Union, Iterator
-# Suppression needed until PyLint 2.0 is out
-from typing import MutableMapping # pylint: disable=unused-import
+from typing import MutableMapping
 from typing import List, Any, Sequence, Tuple
 
 from collections import deque
@@ -141,9 +140,9 @@ def midi_to_track(filename: str, verbose: bool = False) -> Track:
             print("Notes per track: ", track_lengths)
 
         # TODO: For now only use the first channel
-        note_start_time = {} # type: MutableMapping[int, int]
-        note_volume = {} # type: MutableMapping[int, int]
-        sounds = [] # type: List[Tuple[int, Sound]]
+        note_start_time: MutableMapping[int, int] = {}
+        note_volume: MutableMapping[int, int] = {}
+        sounds: List[Tuple[int, Sound]] = []
         now = 0
         for message in midi_file.tracks[0]:
             now += message.time
@@ -236,7 +235,7 @@ def midi_to_metadata(filename: str) -> List[TrackMetadata]:
     with MidiFile(filename) as midi_file:
         scores = []
         for track in midi_file.tracks:
-            instruments = {} # type: MutableMapping[str, int]
+            instruments: MutableMapping[str, int] = {}
             for message in track:
                 if message.type == 'note_on' and message.velocity > 0:
                     instrument = 'Other'

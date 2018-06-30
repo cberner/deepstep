@@ -232,7 +232,7 @@ class DNN(Model):
         return (examples, labels)
 
     def generate(self, seed_track: Track, measures: int) -> Track:
-        seed = [] # type: List[Tuple[int, Sound]]
+        seed: List[Tuple[int, Sound]] = []
         for start, sound in seed_track[:self.look_back + 1]:
             note = sound.note
             if note not in self.note_to_id:

@@ -132,7 +132,7 @@ class RandomWalk:
         ranked_results: List[Tuple[float, Optional[Hyperparameters]]] = [(math.inf, None)]
         start_time = time.monotonic()
         try:
-            while time.monotonic() - start_time < budget_secs: # type: ignore
+            while time.monotonic() - start_time < budget_secs:
                 parameters = self.__space.sample()
                 loss = objective(parameters)
                 print("{} -> {} loss".format(parameters, loss))
