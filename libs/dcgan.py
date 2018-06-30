@@ -318,7 +318,7 @@ class DCGAN(object):
                           % (epoch, epochs, idx, batch_idxs,
                              time.time() - start_time, errD_fake + errD_real, errG))
 
-                    if np.mod(counter, 100) == 1:
+                    if np.mod(counter, 2) == 1:
                         try:
                             samples, d_loss, g_loss = self.sess.run(
                                 [self.sampler, self.d_loss, self.g_loss],
@@ -332,8 +332,8 @@ class DCGAN(object):
                             save_images(batch_images, [8, 8],
                                         './{}/training_data_{:02d}_{:04d}.png'.format("samples", epoch, idx))
                             print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss))
-                        except:
-                            print("one pic error!...")
+                        except Exception as e:
+                            print("one pic error!...{}".format(e))
 
     def generate(self, seed):
         with self.sess.graph.as_default():
