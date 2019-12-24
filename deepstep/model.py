@@ -28,11 +28,11 @@ from hyperflow import Hyperparameters, NeuralLayerType
 from libs.dcgan import DCGAN
 
 
-Dense = tf.keras.layers.Dense
-Reshape = tf.keras.layers.Reshape
-Dropout = tf.keras.layers.Dropout
-LSTM = tf.keras.layers.LSTM
-Sequential = tf.keras.models.Sequential
+Dense = tf.keras.layers.Dense  # pylint: disable=invalid-name
+Reshape = tf.keras.layers.Reshape  # pylint: disable=invalid-name
+Dropout = tf.keras.layers.Dropout  # pylint: disable=invalid-name
+LSTM = tf.keras.layers.LSTM  # pylint: disable=invalid-name
+Sequential = tf.keras.models.Sequential  # pylint: disable=invalid-name
 
 
 class Model(ABC):
